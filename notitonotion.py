@@ -15,7 +15,6 @@ headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 kst = pytz.timezone('Asia/Seoul')
 SEARCH_URL = "https://www.seti.go.kr/common/bbs/management/selectCmmnBBSMgmtList.do?menuId=1000002747&bbsId=BBSMSTR_000000001070&pageIndex=1"
 SEARCH_URL_KANGWON = "https://www.geti.or.kr/common/bbs/management/selectCmmnBBSMgmtList.do?menuId=1000005661&bbsId=BBSMSTR_000000000738&pageIndex=1"
-RSS_URL = "https://rss.blog.naver.com/cgs2020.xml"
 DATABASE_ID = "e6b4a0208d45466ab2cd50f95115a5e5"
 Science_URL = "https://www.sciencecenter.go.kr/scipia/introduce/notice"
 
@@ -187,26 +186,6 @@ def parse_website_kangwon():
         items.append({"title": title, "link": link, "date": iso_date, "tag": "study"})
     return items
 
-def parse_rss():
-    response = session.get(RSS_URL, headers=headers)
-    if response.status_code != 200:
-        print(f"RSS fetch error: {response.status_code}")
-        return []
-    soup = BeautifulSoup(response.content, 'lxml-xml')
-    items = soup.find_all('item')
-    event_items = []
-    for item in items:
-        category = item.find('category')
-        if category and category.text.strip() == '이벤트':
-            title = item.find('title').get_text(strip=True)
-            link = item.find('link').get_text(strip=True)
-            pub_date = item.find('pubDate').get_text(strip=True)
-            parsed_date = datetime.strptime(pub_date, "%a, %d %b %Y %H:%M:%S %z")
-            iso_date = parsed_date.isoformat()
-            event_items.append({"title": title, "link": link, "date": iso_date, "tag": "Theater"})
-            if len(event_items) == 5:
-                break
-    return event_items
 
 SCIENCE_BASE = "https://www.sciencecenter.go.kr"
 
@@ -270,7 +249,7 @@ def parse_science_notices(limit=10):
 
 def update_notion_with_new_posts():
     current_time = datetime.now(kst).isoformat()
-    sources = [("Website", parse_website), ("RSS", parse_rss), ("Science", parse_science_notices),("Website_kangwon",parse_website_kangwon)]
+    sources = [("Website", parse_website), ("Science", parse_science_notices),("Website_kangwon",parse_website_kangwon)]
     
     if DRY_RUN:
         print("\n" + "="*50)
