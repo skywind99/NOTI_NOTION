@@ -11,6 +11,8 @@ from urllib3.poolmanager import PoolManager
 
 # Notion 및 기본 설정
 notion = Client(auth=os.environ["NOTION_AUTH_TOKEN"])
+NOTION_PERSON_ID = os.environ.get("NOTION_PERSON_ID")
+
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
 kst = pytz.timezone('Asia/Seoul')
 SEARCH_URL = "https://www.seti.go.kr/common/bbs/management/selectCmmnBBSMgmtList.do?menuId=1000002747&bbsId=BBSMSTR_000000001070&pageIndex=1"
@@ -41,16 +43,22 @@ def add_notion_page(title, link, date, creation_date, tag):
         added_items_cache.add(cache_key)
         return
     
-    new_page = {
-        "parent": {"database_id": DATABASE_ID},
-        "properties": {
-            "Name": {"title": [{"text": {"content": title}}]},
-            "URL": {"url": link},
-            "Person": {"people": [{"object": "user", "id": "49e9d9a7-dcb1-4ab3-88aa-6996e26700db"}]},
-            "Date": {"date": {"start": date}},
-            "CreationDate": {"date": {"start": creation_date}},
-            "Tag": {"multi_select": [{"name": tag}]}
-        }
+# add_notion_page 함수 내에서
+new_page = {
+    "parent": {"database_id": DATABASE_ID},
+    "properties": {
+        "Name": {"title": [{"text": {"content": title}}]},
+        "URL": {"url": link},
+        "Date": {"date": {"start": date}},
+        "CreationDate": {"date": {"start": creation_date}},
+        "Tag": {"multi_select": [{"name": tag}]}
+    }
+}
+
+# Person ID가 설정된 경우에만 추가
+if NOTION_PERSON_ID:
+    new_page["properties"]["Person"] = {
+        "people": [{"object": "user", "id": NOTION_PERSON_ID}]
     }
     try:
         notion.pages.create(**new_page)
