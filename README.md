@@ -183,7 +183,6 @@ def parse_new_source():
 ```python
 sources = [
     ("Website", parse_website),
-    ("RSS", parse_rss),
     ("Science", parse_science_notices),
     ("NewSource", parse_new_source),  # 새로 추가
 ]
