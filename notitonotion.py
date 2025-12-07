@@ -35,6 +35,9 @@ class SSLAdapter(HTTPAdapter):
 session = requests.Session()
 session.mount('https://', SSLAdapter())
 
+# 실행 중 추가된 항목을 캐시 (중복 방지)
+added_items_cache = set()
+
 def add_notion_page(title, link, date, creation_date, tag):
     if DRY_RUN:
         print(f"[DRY RUN] Would add to Notion: {title}")
@@ -42,24 +45,23 @@ def add_notion_page(title, link, date, creation_date, tag):
         cache_key = f"{title}||{link}" if link else title
         added_items_cache.add(cache_key)
         return
-    
-# add_notion_page 함수 내에서
-new_page = {
-    "parent": {"database_id": DATABASE_ID},
-    "properties": {
-        "Name": {"title": [{"text": {"content": title}}]},
-        "URL": {"url": link},
-        "Date": {"date": {"start": date}},
-        "CreationDate": {"date": {"start": creation_date}},
-        "Tag": {"multi_select": [{"name": tag}]}
-    }
-}
 
-# Person ID가 설정된 경우에만 추가
-if NOTION_PERSON_ID:
-    new_page["properties"]["Person"] = {
-        "people": [{"object": "user", "id": NOTION_PERSON_ID}]
+    new_page = {
+        "parent": {"database_id": DATABASE_ID},
+        "properties": {
+            "Name": {"title": [{"text": {"content": title}}]},
+            "URL": {"url": link},
+            "Date": {"date": {"start": date}},
+            "CreationDate": {"date": {"start": creation_date}},
+            "Tag": {"multi_select": [{"name": tag}]}
+        }
     }
+
+    # Person ID가 설정된 경우에만 추가
+    if NOTION_PERSON_ID:
+        new_page["properties"]["Person"] = {
+            "people": [{"object": "user", "id": NOTION_PERSON_ID}]
+        }
     try:
         notion.pages.create(**new_page)
         print(f"Added to Notion: {title}")
@@ -68,9 +70,6 @@ if NOTION_PERSON_ID:
         added_items_cache.add(cache_key)
     except Exception as e:
         print(f"Error adding to Notion: {e}")
-
-# 실행 중 추가된 항목을 캐시 (중복 방지)
-added_items_cache = set()
 
 def is_post_in_notion(title, url=None):
     """
@@ -82,16 +81,16 @@ def is_post_in_notion(title, url=None):
     cache_key = f"{title}||{url}" if url else title
     if cache_key in added_items_cache:
         return True
-    
+
     # 2. Notion DB 확인
     import httpx
-    
+
     headers = {
         "Authorization": f"Bearer {os.environ['NOTION_AUTH_TOKEN']}",
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json"
     }
-    
+
     try:
         # URL로 먼저 검색
         if url:
@@ -114,7 +113,7 @@ def is_post_in_notion(title, url=None):
                 if len(data.get("results", [])) > 0:
                     added_items_cache.add(cache_key)  # 캐시에 추가
                     return True
-        
+
         # 제목으로 검색
         payload = {
             "filter": {
@@ -130,7 +129,7 @@ def is_post_in_notion(title, url=None):
             json=payload,
             timeout=30
         )
-        
+
         if response.status_code == 200:
             data = response.json()
             exists = len(data.get("results", [])) > 0
@@ -140,11 +139,10 @@ def is_post_in_notion(title, url=None):
         else:
             print(f"Notion API error: {response.status_code} - {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"Error checking Notion: {e}")
         return False
-        
 
 def parse_website():
     response = session.get(SEARCH_URL, headers=headers)
@@ -169,7 +167,7 @@ def parse_website():
             iso_date = date_str
         items.append({"title": title, "link": link, "date": iso_date, "tag": "study"})
     return items
-    
+
 def parse_website_kangwon():
     response = session.get(SEARCH_URL_KANGWON, headers=headers)
     if response.status_code != 200:
@@ -193,7 +191,6 @@ def parse_website_kangwon():
             iso_date = date_str
         items.append({"title": title, "link": link, "date": iso_date, "tag": "study"})
     return items
-
 
 SCIENCE_BASE = "https://www.sciencecenter.go.kr"
 
@@ -254,27 +251,26 @@ def parse_science_notices(limit=10):
 
     return items
 
-
 def update_notion_with_new_posts():
     current_time = datetime.now(kst).isoformat()
     sources = [("Website", parse_website), ("Science", parse_science_notices),("Website_kangwon",parse_website_kangwon)]
-    
+
     if DRY_RUN:
         print("\n" + "="*50)
         print("🧪 DRY RUN MODE - NO CHANGES WILL BE MADE")
         print("="*50 + "\n")
-    
+
     total_new = 0
     total_skipped = 0
-    
+
     for source_name, parse_func in sources:
         print(f"\n{'='*50}")
         print(f"Checking {source_name}...")
         print(f"{'='*50}")
-        
+
         items = parse_func()
         print(f"Found {len(items)} items from {source_name}")
-        
+
         for item in items:
             # URL과 제목으로 중복 체크
             if not is_post_in_notion(item["title"], item.get("link")):
@@ -284,7 +280,7 @@ def update_notion_with_new_posts():
             else:
                 print(f"⏭️  SKIP: {item['title'][:50]}... (already exists)")
                 total_skipped += 1
-    
+
     print(f"\n{'='*50}")
     if DRY_RUN:
         print(f"🧪 DRY RUN Summary (no changes made):")
