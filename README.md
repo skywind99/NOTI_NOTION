@@ -58,20 +58,44 @@ https://www.notion.so/myworkspace/a8aec43384f447ed84390e8e42c2e089?v=...
                                   이 부분이 DATABASE_ID
 ```
 
+### 5단계: Person ID 확인 (선택)
+
+게시물에 담당자를 자동으로 멘션하려면 Person ID가 필요합니다.
+
+터미널에서 다음 명령어를 실행하세요:
+
+```bash
+curl -X GET "https://api.notion.com/v1/users" \
+  -H "Authorization: Bearer YOUR_NOTION_AUTH_TOKEN" \
+  -H "Notion-Version: 2022-06-28"
+```
+
+응답 예시:
+```json
+{
+  "results": [
+    {
+      "id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "name": "홍길동",
+      "type": "person"
+    }
+  ]
+}
+```
+
+`id` 값이 Person ID입니다. 이 값을 복사해두세요.
+
 ---
 
 ## ⚙️ 설정
 
 ### 코드 수정
 
-`notitonotion.py` 파일에서 다음 값들을 본인 환경에 맞게 수정하세요:
+`notitonotion.py` 파일에서 다음 값을 본인 환경에 맞게 수정하세요:
 
 ```python
 # 데이터베이스 ID (본인의 Notion DB ID로 변경)
 DATABASE_ID = "your-database-id-here"
-
-# Person 속성의 사용자 ID (선택 - 사용하지 않으면 해당 줄 삭제)
-"Person": {"people": [{"object": "user", "id": "your-user-id-here"}]}
 ```
 
 ### 환경 변수 설정
@@ -79,7 +103,10 @@ DATABASE_ID = "your-database-id-here"
 | 변수명 | 설명 | 필수 |
 |--------|------|------|
 | `NOTION_AUTH_TOKEN` | Notion Integration Secret | ✅ |
+| `NOTION_PERSON_ID` | 담당자로 멘션할 사용자 ID | ❌ |
 | `DRY_RUN` | `true`로 설정 시 테스트 모드 | ❌ |
+
+> **참고**: `NOTION_PERSON_ID`를 설정하지 않으면 Person 속성 없이 게시물이 생성됩니다.
 
 ---
 
@@ -106,6 +133,7 @@ pip install -r requirements.txt
 ```bash
 # 환경 변수 설정
 export NOTION_AUTH_TOKEN="your-notion-secret-here"
+export NOTION_PERSON_ID="your-person-id-here"  # 선택
 
 # 테스트 모드로 실행 (실제 저장 안 함)
 export DRY_RUN=true
@@ -133,10 +161,19 @@ python notitonotion.py
 | Name | Value |
 |------|-------|
 | `NOTION_AUTH_TOKEN` | Notion Integration Secret |
+| `NOTION_PERSON_ID` | Person ID (선택 - 담당자 멘션용) |
 
-### 3단계: Workflow 파일 확인
+### 3단계: Workflow 파일 설정
 
-`.github/workflows/` 폴더에 워크플로우 파일이 있습니다. 스케줄을 수정하려면:
+`.github/workflows/` 폴더의 워크플로우 파일에서 환경변수가 올바르게 설정되어 있는지 확인하세요:
+
+```yaml
+env:
+  NOTION_AUTH_TOKEN: ${{ secrets.NOTION_AUTH_TOKEN }}
+  NOTION_PERSON_ID: ${{ secrets.NOTION_PERSON_ID }}
+```
+
+스케줄을 수정하려면:
 
 ```yaml
 on:
@@ -224,6 +261,11 @@ noti_to_notion/
 ### "Notion API error: 404"
 - `DATABASE_ID`가 올바른지 확인
 - 데이터베이스 URL에서 ID를 다시 복사
+
+### Person 멘션이 안 됨
+- `NOTION_PERSON_ID` 환경변수가 설정되었는지 확인
+- GitHub Actions 사용 시 Secrets에 추가했는지 확인
+- Workflow 파일의 `env` 섹션에 매핑되어 있는지 확인
 
 ### "Website fetch error"
 - 대상 웹사이트가 접속 가능한지 확인
