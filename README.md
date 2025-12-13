@@ -1,4 +1,4 @@
-# 📬 Noti to Notion
+# 📬 NOTI_NOTION
 
 여러 웹사이트의 공지사항과 이벤트를 자동으로 크롤링하여 Notion 데이터베이스에 저장하는 자동화 도구입니다.
 
@@ -121,8 +121,8 @@ DATABASE_ID = "your-database-id-here"
 
 ```bash
 # 저장소 클론
-git clone https://github.com/skywind99/noti_to_notion.git
-cd noti_to_notion
+git clone https://github.com/skywind99/NOTI_NOTION.git
+cd NOTI_NOTION
 
 # 의존성 설치
 pip install -r requirements.txt
@@ -243,7 +243,7 @@ items.append({
 ## 📁 프로젝트 구조
 
 ```
-noti_to_notion/
+NOTI_NOTION/
 ├── notitonotion.py      # 메인 스크립트
 ├── requirements.txt     # Python 의존성
 └── .github/
@@ -294,4 +294,4 @@ noti_to_notion/
 
 ## 📮 문의
 
-이슈나 질문이 있으시면 [GitHub Issues](https://github.com/skywind99/noti_to_notion/issues)에 등록해 주세요!
+이슈나 질문이 있으시면 [GitHub Issues](https://github.com/skywind99/NOTI_NOTION/issues)에 등록해 주세요!
